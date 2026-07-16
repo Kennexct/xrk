@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { NewsCategory, NewsStatus, Prisma } from '@prisma/client';
+import { NewsCategory, NewsStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, badRequest, notFound } from '../../lib/errors';
 import { requireAuth, requirePermission } from '../../middleware/auth';
@@ -44,7 +44,7 @@ newsRouter.get(
   asyncHandler(async (req, res) => {
     const q = parseQuery(listQuery, req);
     const isEditor = can(req.auth!.role, 'news:write');
-    const where: Prisma.NewsWhereInput = {
+    const where: Record<string, any> = {
       ...(q.category ? { category: q.category } : {}),
       // Non-editors only ever see published posts.
       ...(isEditor && q.status ? { status: q.status } : isEditor ? {} : { status: 'PUBLISHED' }),
@@ -53,8 +53,8 @@ newsRouter.get(
       prisma.news.findMany({
         where,
         orderBy: [{ publishedAt: { sort: 'desc', nulls: 'first' } }, { createdAt: 'desc' }],
-        skip: (q.page - 1) * q.pageSize,
-        take: q.pageSize,
+        skip: (Number(q.page) - 1) * Number(q.pageSize),
+        take: Number(q.pageSize),
         include: authorSelect,
       }),
       prisma.news.count({ where }),
@@ -111,7 +111,7 @@ newsRouter.post(
       data: {
         authorId: req.auth!.sub,
         title: body.title,
-        slug: await uniqueSlug(body.title),
+        slug: await uniqueSlug(body.title as string),
         content: body.content,
         coverImageUrl: body.coverImageUrl ?? undefined,
         category: body.category,

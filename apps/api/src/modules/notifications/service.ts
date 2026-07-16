@@ -24,7 +24,7 @@ export async function notifyAllMembers(input: NotifyInput, excludeUserId?: strin
   if (users.length === 0) return;
 
   await prisma.notification.createMany({
-    data: users.map((u) => ({ userId: u.id, ...input })),
+    data: users.map((u: { id: string }) => ({ userId: u.id, ...input })),
   });
 
   for (const u of users) {

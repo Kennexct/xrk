@@ -52,5 +52,5 @@ export function logActivity(input: LogInput): void {
         userAgent: req?.headers['user-agent']?.slice(0, 500),
       },
     })
-    .catch((err) => console.error('activity log write failed:', err.message));
+    .catch((err: any) => console.error('activity log write failed:', err.message));
 }

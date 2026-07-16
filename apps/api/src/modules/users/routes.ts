@@ -37,7 +37,7 @@ usersRouter.get(
       listOnlineUserIds(),
     ]);
     const online = new Set(onlineIds);
-    res.json({ users: users.map((u) => ({ ...u, isOnline: online.has(u.id) })) });
+    res.json({ users: users.map((u: any) => ({ ...u, isOnline: online.has(u.id) })) });
   }),
 );
 
@@ -118,7 +118,7 @@ usersRouter.get(
       include: { invitedBy: { select: { name: true } } },
     });
     res.json({
-      invitations: invitations.map((i) => ({
+      invitations: invitations.map((i: any) => ({
         id: i.id,
         email: i.email,
         role: i.role,

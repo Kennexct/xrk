@@ -40,7 +40,7 @@ musicRouter.get(
         orderBy: { album: 'asc' },
       }),
     ]);
-    res.json({ tracks, total, page: q.page, pageSize: q.pageSize, albums: albums.map((a) => a.album) });
+    res.json({ tracks, total, page: q.page, pageSize: q.pageSize, albums: albums.map((a: any) => a.album) });
   }),
 );
 

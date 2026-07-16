@@ -49,7 +49,7 @@ eventsRouter.get(
       prisma.event.count({ where }),
     ]);
     res.json({
-      events: events.map((e) => ({
+      events: events.map((e: any) => ({
         ...withStatus(e),
         myRsvp: e.rsvps[0]?.status ?? null,
         goingCount: e._count.rsvps,
@@ -74,7 +74,7 @@ eventsRouter.get(
       },
     });
     if (!event) throw notFound('Event');
-    const myRsvp = event.rsvps.find((r) => r.userId === req.auth!.sub)?.status ?? null;
+    const myRsvp = event.rsvps.find((r: any) => r.userId === req.auth!.sub)?.status ?? null;
     res.json({ event: { ...withStatus(event), myRsvp } });
   }),
 );

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import type { Prisma } from '@prisma/client';
+import '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler } from '../../lib/errors';
 import { requireAuth, requirePermission } from '../../middleware/auth';
@@ -24,7 +24,7 @@ const listQuery = z.object({
   format: z.enum(['json', 'csv']).default('json'),
 });
 
-const buildWhere = (q: z.infer<typeof listQuery>): Prisma.ActivityLogWhereInput => ({
+const buildWhere = (q: z.infer<typeof listQuery>) => ({
   ...(q.userId ? { userId: q.userId } : {}),
   ...(q.actionType ? { actionType: q.actionType } : {}),
   ...(q.from || q.to
@@ -48,7 +48,7 @@ activityRouter.get(
       const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
       const rows = [
         ['timestamp', 'user', 'email', 'action', 'target_type', 'target_id', 'ip', 'user_agent'].join(','),
-        ...logs.map((l) =>
+        ...logs.map((l: any) =>
           [
             l.createdAt.toISOString(),
             l.user?.name,
@@ -104,7 +104,7 @@ activityRouter.get(
       prisma.user.count(),
       prisma.activityLog
         .groupBy({ by: ['userId'], where: { createdAt: { gte: since }, actionType: 'login' } })
-        .then((g) => g.length),
+        .then((g: any[]) => g.length),
       prisma.activityLog.groupBy({
         by: ['actionType'],
         where: { createdAt: { gte: since } },
@@ -118,7 +118,7 @@ activityRouter.get(
       totalUsers,
       activeUsersLast30d: activeUsers,
       onlineNow: onlineIds.length,
-      topActionsLast30d: actions.map((a) => ({ actionType: a.actionType, count: a._count._all })),
+      topActionsLast30d: actions.map((a: any) => ({ actionType: a.actionType, count: a._count._all })),
     });
   }),
 );

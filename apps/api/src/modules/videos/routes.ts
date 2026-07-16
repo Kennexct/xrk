@@ -29,13 +29,13 @@ videosRouter.get(
       prisma.video.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: (q.page - 1) * q.pageSize,
-        take: q.pageSize,
+        skip: (Number(q.page) - 1) * Number(q.pageSize),
+        take: Number(q.pageSize),
         include: { uploader: { select: { id: true, name: true, division: true } } },
       }),
       prisma.video.count({ where }),
     ]);
-    res.json({ videos, total, page: q.page, pageSize: q.pageSize });
+    res.json({ videos, total, page: Number(q.page), pageSize: Number(q.pageSize) });
   }),
 );
 
@@ -66,7 +66,7 @@ videosRouter.post(
   validateBody(createUploadSchema),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof createUploadSchema>;
-    const upload = await createDirectUpload({ title: body.title, uploaderId: req.auth!.sub });
+    const upload = await createDirectUpload({ title: body.title as string, uploaderId: req.auth!.sub });
 
     const video = await prisma.video.create({
       data: {
@@ -92,7 +92,7 @@ videosRouter.post(
     });
     if (upload.instantReady) {
       void notifyAllMembers(
-        { type: 'video', title: 'Video baru', message: body.title, link: `/videos/${video.id}` },
+        { type: 'video', title: 'Video baru', message: body.title as string, link: `/videos/${video.id}` },
         req.auth!.sub,
       );
     }
@@ -109,7 +109,7 @@ videosRouter.post(
   validateBody(youtubeSchema),
   asyncHandler(async (req, res) => {
     const body = req.body as z.infer<typeof youtubeSchema>;
-    const ytId = parseYouTubeId(body.url);
+    const ytId = parseYouTubeId(body.url as string);
     if (!ytId) throw badRequest('Could not extract a YouTube video id from that URL');
 
     const video = await prisma.video.create({
@@ -134,7 +134,7 @@ videosRouter.post(
       req,
     });
     void notifyAllMembers(
-      { type: 'video', title: 'Video baru', message: body.title, link: `/videos/${video.id}` },
+      { type: 'video', title: 'Video baru', message: body.title as string, link: `/videos/${video.id}` },
       req.auth!.sub,
     );
     res.status(201).json({ video });
