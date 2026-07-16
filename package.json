@@ -1,0 +1,22 @@
+{
+  "name": "sunflower-youth-team",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sunflower Youth Team Platform — centralized portal for videos, music, news, events, and member activity",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:api": "npm run dev -w @syt/api",
+    "dev:web": "npm run dev -w @syt/web",
+    "build": "npm run build -w @syt/api && npm run build -w @syt/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:migrate": "npm run db:migrate -w @syt/api",
+    "db:seed": "npm run db:seed -w @syt/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
