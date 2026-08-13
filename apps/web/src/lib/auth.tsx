@@ -8,7 +8,8 @@ import type { Role, User } from './types';
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ mustChangePassword?: boolean; user: User }>;
+  setupPassword: (newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setSession: (data: { accessToken: string; refreshToken: string; user: User }) => void;
@@ -47,9 +48,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const data = await api<{ accessToken: string; refreshToken: string; user: User }>('/api/auth/login', {
+      const data = await api<{ accessToken: string; refreshToken: string; mustChangePassword?: boolean; user: User }>(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          body: { email, password },
+        },
+      );
+      setSession(data);
+      return { mustChangePassword: data.mustChangePassword, user: data.user };
+    },
+    [setSession],
+  );
+
+  const setupPassword = useCallback(
+    async (newPassword: string) => {
+      const data = await api<{ accessToken: string; refreshToken: string; user: User }>('/api/auth/setup-password', {
         method: 'POST',
-        body: { email, password },
+        body: { newPassword },
       });
       setSession(data);
     },
@@ -73,8 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = useCallback((...roles: Role[]) => (user ? roles.includes(user.role) : false), [user]);
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, refreshUser, setSession, hasRole }),
-    [user, loading, login, logout, refreshUser, setSession, hasRole],
+    () => ({ user, loading, login, setupPassword, logout, refreshUser, setSession, hasRole }),
+    [user, loading, login, setupPassword, logout, refreshUser, setSession, hasRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -16,7 +16,7 @@ export const authRouter = Router();
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 30, // coarse per-IP guard; fine-grained lockout below
+  limit: 30, // coarse per-IP guard
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -31,6 +31,7 @@ const publicUser = (u: {
   avatarUrl: string | null;
   role: string;
   status: string;
+  mustChangePassword?: boolean;
   lastSeenAt: Date | null;
 }) => ({
   id: u.id,
@@ -42,6 +43,7 @@ const publicUser = (u: {
   avatarUrl: u.avatarUrl,
   role: u.role,
   status: u.status,
+  mustChangePassword: Boolean(u.mustChangePassword),
   lastSeenAt: u.lastSeenAt,
 });
 
@@ -63,7 +65,6 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-// 5 failed attempts → 15 minute lockout (master.md §6)
 authRouter.post(
   '/login',
   authLimiter,
@@ -91,7 +92,43 @@ authRouter.post(
     await kv.del(lockKey);
     const tokens = await issueTokens(user);
     logActivity({ userId: user.id, actionType: 'login', req });
-    res.json({ ...tokens, user: publicUser(user) });
+
+    res.json({
+      ...tokens,
+      mustChangePassword: Boolean(user.mustChangePassword),
+      user: publicUser(user),
+    });
+  }),
+);
+
+const setupPasswordSchema = z.object({
+  newPassword: z.string().min(8, 'Password minimal 8 karakter'),
+});
+
+// Setup new password for first-time login / after reset
+authRouter.post(
+  '/setup-password',
+  requireAuth,
+  validateBody(setupPasswordSchema),
+  asyncHandler(async (req, res) => {
+    const { newPassword } = req.body as z.infer<typeof setupPasswordSchema>;
+    const userId = req.auth!.sub;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw unauthorized();
+
+    const passwordHash = await hashPassword(newPassword);
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+      },
+    });
+
+    logActivity({ userId, actionType: 'update_profile', metadata: { setupPassword: true }, req });
+    const tokens = await issueTokens(updated);
+    res.json({ ...tokens, mustChangePassword: false, user: publicUser(updated) });
   }),
 );
 
@@ -110,7 +147,6 @@ authRouter.post(
     if (!stored || stored.revokedAt || stored.expiresAt < new Date() || stored.user.status !== 'ACTIVE') {
       throw unauthorized('Invalid refresh token');
     }
-    // Rotate: revoke old token, issue a fresh pair.
     await prisma.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
     const tokens = await issueTokens(stored.user);
     res.json({ ...tokens, user: publicUser(stored.user) });
@@ -140,70 +176,5 @@ authRouter.get(
     const user = await prisma.user.findUnique({ where: { id: req.auth!.sub } });
     if (!user) throw unauthorized();
     res.json({ user: publicUser(user) });
-  }),
-);
-
-// Invitation preview (name of org member who invited, email, role)
-authRouter.get(
-  '/invitations/:token',
-  asyncHandler(async (req, res) => {
-    const invitation = await prisma.invitation.findUnique({
-      where: { token: req.params.token },
-      include: { invitedBy: { select: { name: true } } },
-    });
-    if (!invitation || invitation.acceptedAt || invitation.expiresAt < new Date()) {
-      throw badRequest('Invitation is invalid or has expired');
-    }
-    res.json({
-      email: invitation.email,
-      role: invitation.role,
-      invitedBy: invitation.invitedBy.name,
-      expiresAt: invitation.expiresAt,
-    });
-  }),
-);
-
-const acceptSchema = z.object({
-  token: z.string().min(10),
-  name: z.string().min(2).max(100),
-  password: z.string().min(8).max(128),
-  nim: z.string().max(30).optional(),
-  division: z.string().max(60).optional(),
-  phone: z.string().max(30).optional(),
-});
-
-// Registration is invitation-only (PRD §5.1.1)
-authRouter.post(
-  '/accept-invitation',
-  authLimiter,
-  validateBody(acceptSchema),
-  asyncHandler(async (req, res) => {
-    const body = req.body as z.infer<typeof acceptSchema>;
-    const invitation = await prisma.invitation.findUnique({ where: { token: body.token } });
-    if (!invitation || invitation.acceptedAt || invitation.expiresAt < new Date()) {
-      throw badRequest('Invitation is invalid or has expired');
-    }
-    const existing = await prisma.user.findUnique({ where: { email: invitation.email } });
-    if (existing) throw badRequest('An account with this email already exists');
-
-    const passwordHash = await hashPassword(body.password);
-    const [user] = await prisma.$transaction([
-      prisma.user.create({
-        data: {
-          email: invitation.email,
-          role: invitation.role,
-          name: body.name,
-          nim: body.nim,
-          division: body.division,
-          phone: body.phone,
-          passwordHash,
-        },
-      }),
-      prisma.invitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } }),
-    ]);
-
-    const tokens = await issueTokens(user);
-    logActivity({ userId: user.id, actionType: 'accept_invitation', req });
-    res.status(201).json({ ...tokens, user: publicUser(user) });
   }),
 );

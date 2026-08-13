@@ -20,6 +20,7 @@ async function main() {
       name: 'Super Admin',
       role: 'SUPER_ADMIN',
       status: 'ACTIVE',
+      mustChangePassword: false,
       division: 'Pengurus Inti',
       passwordHash,
     },

@@ -71,10 +71,11 @@ model User {
   phone        String?
   avatarUrl    String?
   role         Role       @default(MEMBER)
-  status       UserStatus @default(ACTIVE)
-  lastSeenAt   DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  status             UserStatus @default(ACTIVE)
+  mustChangePassword Boolean    @default(true)
+  lastSeenAt         DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   refreshTokens   RefreshToken[]
   activityLogs    ActivityLog[]

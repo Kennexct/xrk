@@ -10,6 +10,7 @@ export interface User {
   avatarUrl: string | null;
   role: Role;
   status: 'ACTIVE' | 'INACTIVE';
+  mustChangePassword?: boolean;
   lastSeenAt: string | null;
   isOnline?: boolean;
 }

@@ -1,14 +1,13 @@
 import { Router } from 'express';
-import crypto from 'node:crypto';
 import { z } from 'zod';
 import { Role, UserStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, badRequest, notFound } from '../../lib/errors';
+import { hashPassword } from '../../lib/passwords';
 import { requireAuth, requirePermission } from '../../middleware/auth';
 import { validateBody } from '../../middleware/validate';
 import { logActivity } from '../activity/log';
 import { listOnlineUserIds } from '../../realtime/gateway';
-import { config } from '../../config';
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
@@ -23,11 +22,14 @@ const directorySelect = {
   avatarUrl: true,
   role: true,
   status: true,
+  mustChangePassword: true,
   lastSeenAt: true,
   createdAt: true,
 } as const;
 
-// Member directory with live presence (PRD §5.1.7 — online dot + last seen)
+const DEFAULT_INITIAL_PASSWORD = 'Sunflower123';
+
+// Member directory with live presence
 usersRouter.get(
   '/',
   requirePermission('users:view_directory'),
@@ -63,11 +65,13 @@ usersRouter.patch(
   }),
 );
 
-// ---- Admin: invitations (registration is invite-only, PRD §5.1.1) ----
+// ---- Admin: Add / Invite New Member (Direct creation with default password Sunflower123) ----
 
 const inviteSchema = z.object({
   email: z.string().email().toLowerCase(),
+  name: z.string().min(2).max(100).optional(),
   role: z.nativeEnum(Role).default('MEMBER'),
+  division: z.string().max(60).optional(),
 });
 
 usersRouter.post(
@@ -75,78 +79,91 @@ usersRouter.post(
   requirePermission('users:manage'),
   validateBody(inviteSchema),
   asyncHandler(async (req, res) => {
-    const { email, role } = req.body as z.infer<typeof inviteSchema>;
+    const { email, name, role, division } = req.body as z.infer<typeof inviteSchema>;
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) throw badRequest('A user with this email already exists');
+    if (existing) throw badRequest('Pengguna dengan email ini sudah terdaftar');
 
-    const invitation = await prisma.invitation.create({
+    const defaultName = name || email.split('@')[0] || 'Anggota SYT';
+    const passwordHash = await hashPassword(DEFAULT_INITIAL_PASSWORD);
+
+    const user = await prisma.user.create({
       data: {
         email,
+        name: defaultName,
         role,
-        token: crypto.randomBytes(24).toString('base64url'),
-        invitedById: req.auth!.sub,
-        expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+        division,
+        passwordHash,
+        status: 'ACTIVE',
+        mustChangePassword: true,
       },
+      select: directorySelect,
     });
+
     logActivity({
       userId: req.auth!.sub,
       actionType: 'invite_user',
-      targetType: 'invitation',
-      targetId: invitation.id,
-      metadata: { email, role },
+      targetType: 'user',
+      targetId: user.id,
+      metadata: { email, role, defaultPassword: DEFAULT_INITIAL_PASSWORD },
       req,
     });
-    // The invite link is shared manually via WA/email (PRD §10 — simple onboarding).
+
     res.status(201).json({
-      invitation: {
-        id: invitation.id,
-        email: invitation.email,
-        role: invitation.role,
-        expiresAt: invitation.expiresAt,
-        inviteUrl: `${config.webOrigin}/invite/${invitation.token}`,
-      },
+      ok: true,
+      user,
+      defaultPassword: DEFAULT_INITIAL_PASSWORD,
     });
   }),
 );
 
+// Legacy/Compatibility endpoint for invitations list
 usersRouter.get(
   '/invitations',
   requirePermission('users:manage'),
   asyncHandler(async (_req, res) => {
-    const invitations = await prisma.invitation.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { invitedBy: { select: { name: true } } },
-    });
-    res.json({
-      invitations: invitations.map((i: any) => ({
-        id: i.id,
-        email: i.email,
-        role: i.role,
-        invitedBy: i.invitedBy.name,
-        expiresAt: i.expiresAt,
-        acceptedAt: i.acceptedAt,
-        inviteUrl: i.acceptedAt ? null : `${config.webOrigin}/invite/${i.token}`,
-        createdAt: i.createdAt,
-      })),
-    });
+    res.json({ invitations: [] });
   }),
 );
 
-usersRouter.delete(
-  '/invitations/:id',
+// ---- Super Admin / Admin: Reset User Password to Default Sunflower123 ----
+
+usersRouter.post(
+  '/:id/reset-password',
   requirePermission('users:manage'),
   asyncHandler(async (req, res) => {
-    await prisma.invitation.delete({ where: { id: req.params.id } }).catch(() => {
-      throw notFound('Invitation');
+    const targetUserId = req.params.id;
+    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!user) throw notFound('User');
+
+    const passwordHash = await hashPassword(DEFAULT_INITIAL_PASSWORD);
+    await prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        passwordHash,
+        mustChangePassword: true,
+      },
     });
+
+    // Revoke any existing refresh tokens
+    await prisma.refreshToken.updateMany({
+      where: { userId: targetUserId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
     logActivity({
       userId: req.auth!.sub,
-      actionType: 'revoke_invitation',
-      targetType: 'invitation',
-      targetId: req.params.id,
+      actionType: 'update_user',
+      targetType: 'user',
+      targetId: targetUserId,
+      metadata: { resetPassword: true, defaultPassword: DEFAULT_INITIAL_PASSWORD },
       req,
     });
-    res.json({ ok: true });
+
+    res.json({
+      ok: true,
+      message: `Password berhasil direset ke ${DEFAULT_INITIAL_PASSWORD}`,
+      defaultPassword: DEFAULT_INITIAL_PASSWORD,
+    });
   }),
 );
 

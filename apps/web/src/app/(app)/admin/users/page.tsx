@@ -6,10 +6,10 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
 import { Avatar, PageHeader, PageLoader, StatusBadge } from '@/components/ui';
-import { IconUserPlus, IconCopy, IconCheck, IconTrash } from '@/components/Icons';
+import { IconUserPlus, IconLock } from '@/components/Icons';
 import { InviteMemberModal } from '@/components/InviteMemberModal';
 import { formatDate } from '@/lib/format';
-import { ROLE_LABELS, type Invitation, type Role, type User } from '@/lib/types';
+import { ROLE_LABELS, type Role, type User } from '@/lib/types';
 
 const ROLES = Object.keys(ROLE_LABELS) as Role[];
 
@@ -18,13 +18,9 @@ export default function AdminUsersPage() {
   const { t } = useTheme();
   const queryClient = useQueryClient();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [copied, setCopied] = useState<string | null>(null);
+  const [resetSuccessMsg, setResetSuccessMsg] = useState<string | null>(null);
 
   const users = useQuery({ queryKey: ['users'], queryFn: () => api<{ users: User[] }>('/api/users') });
-  const invitations = useQuery({
-    queryKey: ['invitations'],
-    queryFn: () => api<{ invitations: Invitation[] }>('/api/users/invitations'),
-  });
 
   const updateUser = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
@@ -32,21 +28,26 @@ export default function AdminUsersPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['users'] }),
   });
 
-  const copy = async (url: string, id: string) => {
-    await navigator.clipboard.writeText(url);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2500);
-  };
+  const resetPassword = useMutation({
+    mutationFn: (userId: string) =>
+      api<{ ok: boolean; message: string; defaultPassword: string }>(`/api/users/${userId}/reset-password`, {
+        method: 'POST',
+      }),
+    onSuccess: (res, userId) => {
+      const u = users.data?.users.find((user) => user.id === userId);
+      setResetSuccessMsg(`Password ${u?.name ?? 'anggota'} berhasil direset ke ${res.defaultPassword}!`);
+      setTimeout(() => setResetSuccessMsg(null), 5000);
+      void queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
 
   if (users.isLoading) return <PageLoader />;
-
-  const pending = (invitations.data?.invitations ?? []).filter((i) => !i.acceptedAt);
 
   return (
     <div className="space-y-8">
       <PageHeader
         title={t.memberDirectory}
-        subtitle="Registrasi hanya melalui undangan pengurus"
+        subtitle="Registrasi anggota oleh Pengurus / Admin"
         action={
           <button
             type="button"
@@ -59,47 +60,10 @@ export default function AdminUsersPage() {
         }
       />
 
-      {pending.length > 0 && (
-        <section className="card p-5 border border-sun-200/80 bg-sun-50/20 dark:bg-sun-950/20 space-y-3">
-          <h2 className="font-bold text-sm text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
-            <IconUserPlus size={18} className="text-sun-600" />
-            <span>Undangan Menunggu ({pending.length})</span>
-          </h2>
-          <ul className="divide-y divide-neutral-200/60 dark:divide-neutral-800">
-            {pending.map((inv) => (
-              <li key={inv.id} className="flex flex-wrap items-center gap-2.5 py-3 text-sm">
-                <span className="font-bold text-neutral-900 dark:text-neutral-100">{inv.email}</span>
-                <span className="badge bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-medium">
-                  {ROLE_LABELS[inv.role]}
-                </span>
-                <span className="text-xs text-neutral-400">kedaluwarsa {formatDate(inv.expiresAt)}</span>
-                <span className="ml-auto flex gap-2">
-                  {inv.inviteUrl && (
-                    <button
-                      type="button"
-                      className="btn-secondary !py-1 text-xs flex items-center gap-1.5"
-                      onClick={() => void copy(inv.inviteUrl!, inv.id)}
-                    >
-                      {copied === inv.id ? <IconCheck size={14} className="text-green-600" /> : <IconCopy size={14} />}
-                      <span>{copied === inv.id ? t.linkCopied : t.copyInviteLink}</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn-secondary !py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                    onClick={async () => {
-                      await api(`/api/users/invitations/${inv.id}`, { method: 'DELETE' });
-                      void queryClient.invalidateQueries({ queryKey: ['invitations'] });
-                    }}
-                  >
-                    <IconTrash size={14} />
-                    <span>Batalkan</span>
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {resetSuccessMsg && (
+        <div className="p-4 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-xl text-sm font-semibold text-green-800 dark:text-green-300">
+          ✅ {resetSuccessMsg}
+        </div>
       )}
 
       <section className="space-y-4">
@@ -107,14 +71,14 @@ export default function AdminUsersPage() {
           Anggota Terdaftar ({users.data?.users.length ?? 0})
         </h2>
         <div className="card overflow-x-auto border border-neutral-200/80 dark:border-neutral-800">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-neutral-200 dark:border-neutral-800 text-left text-xs font-bold uppercase tracking-wider text-neutral-500 bg-neutral-50/50 dark:bg-neutral-900/50">
                 <th className="px-4 py-3.5">Nama</th>
                 <th className="px-4 py-3.5">Divisi</th>
                 <th className="px-4 py-3.5">Role</th>
                 <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5">Bergabung</th>
+                <th className="px-4 py-3.5">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -157,8 +121,21 @@ export default function AdminUsersPage() {
                       <StatusBadge status={u.status} label={u.status === 'ACTIVE' ? 'Aktif' : 'Nonaktif'} />
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-xs font-medium text-neutral-400">
-                    {formatDate(u.lastSeenAt ?? new Date().toISOString())}
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      disabled={resetPassword.isPending}
+                      onClick={() => {
+                        if (confirm(`Reset password ${u.name} ke default (Sunflower123)?`)) {
+                          resetPassword.mutate(u.id);
+                        }
+                      }}
+                      className="btn-secondary !py-1 text-xs flex items-center gap-1.5 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400 transition"
+                      title="Reset password ke Sunflower123"
+                    >
+                      <IconLock size={14} />
+                      <span>Reset Password</span>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -167,7 +144,7 @@ export default function AdminUsersPage() {
         </div>
       </section>
 
-      {/* Invite Modal */}
+      {/* Invite / Add Modal */}
       <InviteMemberModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
     </div>
   );
