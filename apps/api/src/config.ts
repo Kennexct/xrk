@@ -15,8 +15,8 @@ export const config = {
   publicApiUrl: env('PUBLIC_API_URL', `http://localhost:${process.env.PORT ?? '4000'}`),
 
   jwt: {
-    accessSecret: env('JWT_ACCESS_SECRET', isProd ? undefined : 'dev-access-secret-change-me'),
-    refreshSecret: env('JWT_REFRESH_SECRET', isProd ? undefined : 'dev-refresh-secret-change-me'),
+    accessSecret: env('JWT_ACCESS_SECRET', 'dev-access-secret-change-me'),
+    refreshSecret: env('JWT_REFRESH_SECRET', 'dev-refresh-secret-change-me'),
     accessTtlSec: 60 * 15, // 15 minutes
     refreshTtlSec: 60 * 60 * 24 * 7, // 7 days
   },
