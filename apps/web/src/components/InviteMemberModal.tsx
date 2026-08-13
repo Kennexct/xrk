@@ -17,7 +17,7 @@ export function InviteMemberModal({ isOpen, onClose }: { isOpen: boolean; onClos
   const [name, setName] = useState('');
   const [role, setRole] = useState<Role>('MEMBER');
   const [division, setDivision] = useState('');
-  const [createdUser, setCreatedUser] = useState<{ user: User; defaultPassword: string } | null>(null);
+  const [createdUser, setCreatedUser] = useState<{ email: string; defaultPassword: string } | null>(null);
 
   const invite = useMutation({
     mutationFn: () =>
@@ -26,7 +26,9 @@ export function InviteMemberModal({ isOpen, onClose }: { isOpen: boolean; onClos
         body: { email, name: name || undefined, role, division: division || undefined },
       }),
     onSuccess: (res) => {
-      setCreatedUser({ user: res.user, defaultPassword: res.defaultPassword });
+      const userEmail = res?.user?.email || email;
+      const pwd = res?.defaultPassword || 'Sunflower123';
+      setCreatedUser({ email: userEmail, defaultPassword: pwd });
       void queryClient.invalidateQueries({ queryKey: ['users'] });
       setEmail('');
       setName('');
@@ -149,7 +151,7 @@ export function InviteMemberModal({ isOpen, onClose }: { isOpen: boolean; onClos
             </div>
             <div className="text-xs space-y-1 text-neutral-700 dark:text-neutral-300">
               <p>
-                Email: <strong>{createdUser.user.email}</strong>
+                Email: <strong>{createdUser.email}</strong>
               </p>
               <p>
                 Password Default: <strong className="text-sun-600 dark:text-sun-400 font-mono text-sm">{createdUser.defaultPassword}</strong>

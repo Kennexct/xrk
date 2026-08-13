@@ -37,21 +37,22 @@ export default function MembersPage() {
   if (isLoading) return <PageLoader />;
 
   const canManage = hasRole('SUPER_ADMIN', 'CONTENT_ADMIN', 'EVENT_COORDINATOR');
-  const q = search.toLowerCase();
-  const users = (data?.users ?? []).filter(
+  const q = search.toLowerCase().trim();
+  const rawUsers = data?.users ?? [];
+  const users = rawUsers.filter(
     (u) =>
       !q ||
-      u.name.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
+      (u.name ?? '').toLowerCase().includes(q) ||
+      (u.email ?? '').toLowerCase().includes(q) ||
       (u.division ?? '').toLowerCase().includes(q),
   );
-  const onlineCount = users.filter((u) => u.isOnline).length;
+  const onlineCount = users.filter((u) => u?.isOnline).length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={t.memberDirectory}
-        subtitle={`${data?.users.length ?? 0} ${t.members.toLowerCase()} · ${onlineCount} ${t.onlineNow.toLowerCase()}`}
+        subtitle={`${rawUsers.length} ${t.members.toLowerCase()} · ${onlineCount} ${t.onlineNow.toLowerCase()}`}
         action={
           canManage && (
             <button
@@ -81,32 +82,38 @@ export default function MembersPage() {
       </div>
 
       <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-        {users.map((u) => (
-          <div
-            key={u.id}
-            className="card flex items-center gap-3.5 p-4 hover:shadow-md transition border border-neutral-200/80 dark:border-neutral-800"
-          >
-            <Avatar name={u.name} src={u.avatarUrl} size={46} online={u.isOnline} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-bold text-neutral-900 dark:text-neutral-100 text-sm leading-snug">{u.name}</p>
-              <p className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400 mt-0.5">
-                {[u.division, ROLE_LABELS[u.role]].filter(Boolean).join(' · ')}
-              </p>
-              <p className="text-xs font-medium mt-1">
-                {u.isOnline ? (
-                  <span className="text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                    Online
-                  </span>
-                ) : u.lastSeenAt ? (
-                  <span className="text-neutral-400">{`${t.lastSeen} ${formatRelative(u.lastSeenAt)}`}</span>
-                ) : (
-                  <span className="text-neutral-400">Offline</span>
-                )}
-              </p>
+        {users.map((u) => {
+          if (!u || !u.id) return null;
+          const roleLabel = ROLE_LABELS[u.role] ?? u.role ?? 'Member';
+          return (
+            <div
+              key={u.id}
+              className="card flex items-center gap-3.5 p-4 hover:shadow-md transition border border-neutral-200/80 dark:border-neutral-800"
+            >
+              <Avatar name={u.name ?? u.email} src={u.avatarUrl} size={46} online={u.isOnline} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-bold text-neutral-900 dark:text-neutral-100 text-sm leading-snug">
+                  {u.name || u.email}
+                </p>
+                <p className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  {[u.division, roleLabel].filter(Boolean).join(' · ')}
+                </p>
+                <p className="text-xs font-medium mt-1">
+                  {u.isOnline ? (
+                    <span className="text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Online
+                    </span>
+                  ) : u.lastSeenAt ? (
+                    <span className="text-neutral-400">{`${t.lastSeen} ${formatRelative(u.lastSeenAt)}`}</span>
+                  ) : (
+                    <span className="text-neutral-400">Offline</span>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Invite Member Modal */}
