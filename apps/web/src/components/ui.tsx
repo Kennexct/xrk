@@ -30,7 +30,7 @@ export function EmptyState({ icon, title, subtitle }: { icon?: ReactNode; title:
   );
 }
 
-export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+export function PageHeader({ title, subtitle, action }: { title: ReactNode; subtitle?: string; action?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
