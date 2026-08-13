@@ -35,9 +35,10 @@ export default function MusicUploadPage() {
     setSubmitting(true);
     try {
       // 1) presigned URL — audio langsung ke object storage (PRD §8.7)
+      const contentType = file.type || (file.name.endsWith('.mp3') ? 'audio/mpeg' : 'audio/mpeg');
       const presigned = await api<{ key: string; uploadUrl: string; fileUrl: string }>('/api/music/upload-url', {
         method: 'POST',
-        body: { fileName: file.name, contentType: file.type || 'audio/mpeg', sizeBytes: file.size },
+        body: { fileName: file.name, contentType, sizeBytes: file.size },
       });
       setProgress(0);
       await uploadToPresignedUrl(presigned.uploadUrl, file, setProgress);

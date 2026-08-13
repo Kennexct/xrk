@@ -14,7 +14,24 @@ export type UploadKind = 'music' | 'image' | 'document';
 
 const ALLOWED: Record<UploadKind, { contentTypes: string[]; maxBytes: number }> = {
   music: {
-    contentTypes: ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/aac', 'audio/ogg', 'audio/opus', 'audio/mp4'],
+    contentTypes: [
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/wav',
+      'audio/x-wav',
+      'audio/wave',
+      'audio/aac',
+      'audio/x-aac',
+      'audio/m4a',
+      'audio/x-m4a',
+      'audio/ogg',
+      'audio/opus',
+      'audio/mp4',
+      'audio/flac',
+      'audio/x-flac',
+      'audio/webm',
+      'application/octet-stream',
+    ],
     maxBytes: config.limits.musicFileMaxBytes,
   },
   image: {
