@@ -20,12 +20,12 @@ export function PageLoader() {
   );
 }
 
-export function EmptyState({ icon, title, subtitle }: { icon?: string; title: string; subtitle?: string }) {
+export function EmptyState({ icon, title, subtitle }: { icon?: ReactNode; title: string; subtitle?: string }) {
   return (
-    <div className="card flex flex-col items-center gap-2 px-6 py-16 text-center">
-      {icon && <span className="text-4xl" aria-hidden>{icon}</span>}
-      <p className="font-medium text-neutral-700">{title}</p>
-      {subtitle && <p className="text-sm text-neutral-500">{subtitle}</p>}
+    <div className="card flex flex-col items-center gap-3 px-6 py-12 text-center border border-dashed border-neutral-200 bg-neutral-50/50 rounded-2xl">
+      {icon && <div className="p-3 bg-white rounded-2xl shadow-sm text-sun-600 border border-neutral-100">{icon}</div>}
+      <p className="font-semibold text-neutral-800">{title}</p>
+      {subtitle && <p className="text-sm text-neutral-500 max-w-sm">{subtitle}</p>}
     </div>
   );
 }

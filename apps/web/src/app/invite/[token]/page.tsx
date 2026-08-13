@@ -8,6 +8,8 @@ import { useAuth } from '@/lib/auth';
 import { ErrorNote, PageLoader, Spinner } from '@/components/ui';
 import { ROLE_LABELS, type Role, type User } from '@/lib/types';
 
+import { IconSunflower } from '@/components/Icons';
+
 interface InvitePreview {
   email: string;
   role: Role;
@@ -77,10 +79,10 @@ export default function InvitePage() {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-sun-50 to-amber-100 px-4 py-8">
-      <div className="card w-full max-w-md p-8">
-        <div className="mb-6 text-center">
-          <span className="text-4xl" aria-hidden>🌻</span>
-          <h1 className="mt-2 text-xl font-semibold">Selamat datang!</h1>
+      <div className="card w-full max-w-md p-8 shadow-xl">
+        <div className="mb-6 text-center flex flex-col items-center">
+          <IconSunflower size={44} className="mb-2" />
+          <h1 className="text-xl font-bold">Selamat datang!</h1>
           <p className="mt-1 text-sm text-neutral-500">
             {data.invitedBy} mengundang <strong>{data.email}</strong> bergabung sebagai{' '}
             <strong>{ROLE_LABELS[data.role]}</strong>.

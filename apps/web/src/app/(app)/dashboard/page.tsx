@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Avatar, EmptyState, PageLoader, StatusBadge } from '@/components/ui';
+import { IconNews, IconVideo, IconCalendar, IconChevronRight, IconPlay } from '@/components/Icons';
 import { formatDateTime, formatRelative } from '@/lib/format';
 import { NEWS_CATEGORY_LABELS, type News, type SytEvent, type User, type Video } from '@/lib/types';
 
@@ -37,117 +38,156 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold sm:text-2xl">Halo, {user?.name?.split(' ')[0]} 👋</h1>
-        <p className="mt-1 text-sm text-neutral-500">Kabar dan kegiatan terbaru Sunflower Youth Team.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-sun-500 to-amber-500 p-6 rounded-3xl text-white shadow-lg shadow-sun-500/15">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Halo, {user?.name?.split(' ')[0]} 👋</h1>
+          <p className="mt-1 text-sun-100 text-sm font-medium">Selamat datang kembali di portal Sunflower Youth Team.</p>
+        </div>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        <section className="space-y-4 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Berita terbaru</h2>
-            <Link href="/news" className="text-sm text-sun-700 hover:underline">Lihat semua</Link>
-          </div>
-          {(news.data?.posts ?? []).length === 0 ? (
-            <EmptyState icon="📰" title="Belum ada berita" />
-          ) : (
-            <ul className="space-y-3">
-              {news.data!.posts.map((post) => (
-                <li key={post.id} className="card overflow-hidden">
-                  <Link href={`/news/${post.slug}`} className="flex gap-4 p-4 hover:bg-neutral-50">
-                    {post.coverImageUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={post.coverImageUrl}
-                        alt=""
-                        loading="lazy"
-                        className="hidden h-20 w-32 shrink-0 rounded-lg object-cover sm:block"
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <span className="badge bg-sun-100 text-sun-800">{NEWS_CATEGORY_LABELS[post.category]}</span>
-                      <p className="mt-1 line-clamp-2 font-medium">{post.title}</p>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {post.author?.name} · {post.publishedAt ? formatRelative(post.publishedAt) : 'draft'}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="flex items-center justify-between pt-2">
-            <h2 className="font-semibold">Video terbaru</h2>
-            <Link href="/videos" className="text-sm text-sun-700 hover:underline">Lihat semua</Link>
-          </div>
-          {(videos.data?.videos ?? []).length === 0 ? (
-            <EmptyState icon="🎬" title="Belum ada video" />
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {videos.data!.videos.map((v) => (
-                <Link key={v.id} href={`/videos/${v.id}`} className="group">
-                  <div className="aspect-video overflow-hidden rounded-lg bg-neutral-200">
-                    {v.thumbnailUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={v.thumbnailUrl}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover transition group-hover:scale-105"
-                      />
-                    )}
-                  </div>
-                  <p className="mt-1.5 line-clamp-2 text-sm font-medium">{v.title}</p>
-                </Link>
-              ))}
+        <section className="space-y-6 lg:col-span-2">
+          {/* Berita Terbaru */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <IconNews size={22} className="text-sun-600" />
+                <h2 className="font-bold text-lg text-neutral-900">Berita Terbaru</h2>
+              </div>
+              <Link href="/news" className="text-sm font-semibold text-sun-600 hover:text-sun-700 flex items-center gap-1">
+                Lihat semua <IconChevronRight size={16} />
+              </Link>
             </div>
-          )}
-        </section>
-
-        <aside className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Kegiatan mendatang</h2>
-            <Link href="/calendar" className="text-sm text-sun-700 hover:underline">Kalender</Link>
-          </div>
-          {(events.data?.events ?? []).length === 0 ? (
-            <EmptyState icon="📅" title="Belum ada kegiatan" />
-          ) : (
-            <ul className="space-y-2">
-              {events.data!.events.map((e) => (
-                <li key={e.id}>
-                  <Link href={`/events/${e.id}`} className="card block p-3 hover:bg-neutral-50">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-medium">{e.title}</p>
-                      <StatusBadge status={e.status} />
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {formatDateTime(e.startTime)}
-                      {e.location ? ` · ${e.location}` : ''}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <h2 className="pt-2 font-semibold">Sedang online ({onlineMembers.length})</h2>
-          <div className="card p-3">
-            {onlineMembers.length === 0 ? (
-              <p className="py-3 text-center text-sm text-neutral-500">Tidak ada yang online</p>
+            {(news.data?.posts ?? []).length === 0 ? (
+              <EmptyState icon={<IconNews size={32} />} title="Belum Ada Berita" subtitle="Berita terbaru dari organisasi akan tampil di sini." />
             ) : (
-              <ul className="space-y-2">
-                {onlineMembers.slice(0, 8).map((m) => (
-                  <li key={m.id} className="flex items-center gap-2.5">
-                    <Avatar name={m.name} src={m.avatarUrl} size={30} online />
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm">{m.name}</span>
-                      <span className="block truncate text-xs text-neutral-400">{m.division ?? ''}</span>
-                    </span>
+              <ul className="space-y-3">
+                {news.data!.posts.map((post) => (
+                  <li key={post.id} className="card overflow-hidden transition hover:shadow-md border border-neutral-200/70">
+                    <Link href={`/news/${post.slug}`} className="flex gap-4 p-4 hover:bg-neutral-50/80 transition">
+                      {post.coverImageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={post.coverImageUrl}
+                          alt=""
+                          loading="lazy"
+                          className="hidden h-20 w-32 shrink-0 rounded-xl object-cover sm:block"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <span className="badge bg-sun-100 text-sun-800 font-medium">{NEWS_CATEGORY_LABELS[post.category]}</span>
+                        <p className="mt-1.5 line-clamp-2 font-bold text-neutral-900 leading-snug">{post.title}</p>
+                        <p className="mt-2 text-xs font-medium text-neutral-400">
+                          {post.author?.name} · {post.publishedAt ? formatRelative(post.publishedAt) : 'draft'}
+                        </p>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
             )}
+          </div>
+
+          {/* Video Terbaru */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <IconVideo size={22} className="text-sun-600" />
+                <h2 className="font-bold text-lg text-neutral-900">Video Terbaru</h2>
+              </div>
+              <Link href="/videos" className="text-sm font-semibold text-sun-600 hover:text-sun-700 flex items-center gap-1">
+                Lihat semua <IconChevronRight size={16} />
+              </Link>
+            </div>
+            {(videos.data?.videos ?? []).length === 0 ? (
+              <EmptyState icon={<IconVideo size={32} />} title="Belum Ada Video" subtitle="Video dokumentasi dan karya anggota akan tampil di sini." />
+            ) : (
+              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+                {videos.data!.videos.map((v) => (
+                  <Link key={v.id} href={`/videos/${v.id}`} className="group space-y-2">
+                    <div className="relative aspect-video overflow-hidden rounded-xl bg-neutral-900 shadow-sm">
+                      {v.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={v.thumbnailUrl}
+                          alt=""
+                          loading="lazy"
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105 opacity-90 group-hover:opacity-100"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-white/50">
+                          <IconVideo size={32} />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition">
+                        <div className="rounded-full bg-white/90 p-2 text-neutral-900 shadow-md group-hover:scale-110 transition">
+                          <IconPlay size={16} fill="currentColor" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="line-clamp-2 text-xs font-semibold text-neutral-800 group-hover:text-sun-600 transition leading-snug">{v.title}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <aside className="space-y-6">
+          {/* Kegiatan Mendatang */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <IconCalendar size={20} className="text-sun-600" />
+                <h2 className="font-bold text-lg text-neutral-900">Kegiatan Mendatang</h2>
+              </div>
+              <Link href="/calendar" className="text-xs font-semibold text-sun-600 hover:text-sun-700">Kalender</Link>
+            </div>
+            {(events.data?.events ?? []).length === 0 ? (
+              <EmptyState icon={<IconCalendar size={28} />} title="Belum Ada Agenda" />
+            ) : (
+              <ul className="space-y-2.5">
+                {events.data!.events.map((e) => (
+                  <li key={e.id}>
+                    <Link href={`/events/${e.id}`} className="card block p-3.5 hover:bg-neutral-50/80 transition border border-neutral-200/70">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate font-bold text-sm text-neutral-900">{e.title}</p>
+                        <StatusBadge status={e.status} />
+                      </div>
+                      <p className="mt-1 text-xs font-medium text-neutral-500">
+                        {formatDateTime(e.startTime)}
+                        {e.location ? ` · ${e.location}` : ''}
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Members Online */}
+          <div className="space-y-3 pt-2">
+            <h2 className="font-bold text-lg text-neutral-900 flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+              Sedang Online ({onlineMembers.length})
+            </h2>
+            <div className="card p-4 border border-neutral-200/70">
+              {onlineMembers.length === 0 ? (
+                <p className="py-2 text-center text-xs font-medium text-neutral-400">Tidak ada anggota yang online</p>
+              ) : (
+                <ul className="space-y-3">
+                  {onlineMembers.slice(0, 8).map((m) => (
+                    <li key={m.id} className="flex items-center gap-3">
+                      <Avatar name={m.name} src={m.avatarUrl} size={32} online />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-neutral-800">{m.name}</span>
+                        <span className="block truncate text-xs font-medium text-neutral-400">{m.division ?? ''}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </aside>
       </div>

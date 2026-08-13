@@ -9,6 +9,8 @@ import { EmptyState, ErrorNote, PageHeader, PageLoader } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import type { Folder, SytEvent } from '@/lib/types';
 
+import { IconFolder, IconPlus } from '@/components/Icons';
+
 export default function FilesPage() {
   const { hasRole } = useAuth();
   const queryClient = useQueryClient();
@@ -55,17 +57,18 @@ export default function FilesPage() {
         title="Folder Aktivitas"
         subtitle="Dokumentasi pendukung per kegiatan/divisi (maks. 25MB per file)"
         action={canManage && (
-          <button type="button" className="btn-primary" onClick={() => setShowForm((v) => !v)}>
-            + Buat Folder
+          <button type="button" className="btn-primary flex items-center gap-1.5 shadow-sm" onClick={() => setShowForm((v) => !v)}>
+            <IconPlus size={18} />
+            Buat Folder
           </button>
         )}
       />
 
       {showForm && (
-        <form onSubmit={onCreate} className="card mb-4 grid gap-3 p-4 sm:grid-cols-4">
-          <input required placeholder="Nama folder *" className="input" value={name} onChange={(e) => setName(e.target.value)} />
-          <input placeholder="Divisi" className="input" value={division} onChange={(e) => setDivision(e.target.value)} />
-          <select className="input" value={eventId} onChange={(e) => setEventId(e.target.value)}>
+        <form onSubmit={onCreate} className="card mb-4 grid gap-3 p-4 sm:grid-cols-4 border border-sun-200 bg-sun-50/30">
+          <input required placeholder="Nama folder *" className="input bg-white" value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder="Divisi" className="input bg-white" value={division} onChange={(e) => setDivision(e.target.value)} />
+          <select className="input bg-white" value={eventId} onChange={(e) => setEventId(e.target.value)}>
             <option value="">(Tanpa kegiatan)</option>
             {(events.data?.events ?? []).map((ev) => (
               <option key={ev.id} value={ev.id}>{ev.title}</option>
@@ -79,15 +82,17 @@ export default function FilesPage() {
       {isLoading ? (
         <PageLoader />
       ) : (data?.folders ?? []).length === 0 ? (
-        <EmptyState icon="📁" title="Belum ada folder" subtitle="Folder dibuat per kegiatan atau divisi." />
+        <EmptyState icon={<IconFolder size={36} />} title="Belum ada folder" subtitle="Folder dibuat per kegiatan atau divisi." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {data!.folders.map((f) => (
-            <Link key={f.id} href={`/files/${f.id}`} className="card flex items-center gap-3 p-4 hover:bg-neutral-50">
-              <span className="text-3xl" aria-hidden>📁</span>
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{f.name}</span>
-                <span className="block truncate text-xs text-neutral-500">
+            <Link key={f.id} href={`/files/${f.id}`} className="card flex items-center gap-3.5 p-4 hover:bg-neutral-50 transition border border-neutral-200/80 group">
+              <div className="p-3 bg-sun-100/70 text-sun-700 rounded-xl group-hover:bg-sun-500 group-hover:text-white transition-colors duration-200">
+                <IconFolder size={24} />
+              </div>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-bold text-neutral-900 leading-snug">{f.name}</span>
+                <span className="block truncate text-xs font-medium text-neutral-500 mt-0.5">
                   {f.event?.title ?? 'Umum'}
                   {f.division ? ` · ${f.division}` : ''} · {f._count?.files ?? 0} file · {formatDate(f.createdAt)}
                 </span>

@@ -8,6 +8,8 @@ import { getSocket } from '@/lib/socket';
 import { formatRelative } from '@/lib/format';
 import type { Notification } from '@/lib/types';
 
+import { IconBell } from './Icons';
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -49,15 +51,12 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-full p-2 text-neutral-600 hover:bg-neutral-100"
+        className="relative rounded-full p-2 text-neutral-600 hover:bg-neutral-100/80 transition"
         aria-label={`Notifikasi${unread ? ` (${unread} belum dibaca)` : ''}`}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-        </svg>
+        <IconBell size={20} className="text-neutral-600 hover:text-neutral-900" />
         {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
             {unread > 99 ? '99+' : unread}
           </span>
         )}

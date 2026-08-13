@@ -6,11 +6,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, uploadToPresignedUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { EmptyState, ErrorNote, PageHeader, PageLoader } from '@/components/ui';
+import { IconFolder, IconFileText, IconImage, IconUpload, IconTrash } from '@/components/Icons';
 import { formatBytes, formatDateTime } from '@/lib/format';
 import type { Folder } from '@/lib/types';
 
-const fileIcon = (type: string) =>
-  type.includes('pdf') ? '📄' : type.startsWith('image/') ? '🖼️' : type.includes('zip') ? '🗜️' : type.includes('word') ? '📝' : type.includes('sheet') || type.includes('excel') ? '📊' : '📎';
+const renderFileIcon = (type: string) => {
+  if (type.startsWith('image/')) return <IconImage size={20} className="text-blue-500" />;
+  return <IconFileText size={20} className="text-sun-600" />;
+};
 
 export default function FolderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -70,11 +73,17 @@ export default function FolderDetailPage() {
   return (
     <div>
       <PageHeader
-        title={`📁 ${folder.name}`}
+        title={
+          <div className="flex items-center gap-2.5">
+            <IconFolder size={28} className="text-sun-600" />
+            <span>{folder.name}</span>
+          </div>
+        }
         subtitle={[folder.event?.title, folder.division].filter(Boolean).join(' · ') || 'Folder umum'}
         action={canUpload && (
-          <label className="btn-primary cursor-pointer">
-            {progress !== null ? `Mengunggah… ${progress}%` : '+ Upload File'}
+          <label className="btn-primary cursor-pointer flex items-center gap-2 shadow-sm">
+            <IconUpload size={18} />
+            <span>{progress !== null ? `Mengunggah… ${progress}%` : 'Upload File'}</span>
             <input
               ref={inputRef}
               type="file"
@@ -89,22 +98,24 @@ export default function FolderDetailPage() {
       {error ? <div className="mb-4"><ErrorNote error={error} /></div> : null}
 
       {(folder.files ?? []).length === 0 ? (
-        <EmptyState icon="📄" title="Folder kosong" subtitle="Upload dokumentasi pendukung (PDF, gambar, dokumen)." />
+        <EmptyState icon={<IconFileText size={36} />} title="Folder Kosong" subtitle="Upload dokumentasi pendukung (PDF, gambar, dokumen)." />
       ) : (
-        <ul className="card divide-y divide-neutral-100">
+        <ul className="card divide-y divide-neutral-100/80 border border-neutral-200/80 rounded-2xl overflow-hidden">
           {folder.files!.map((f) => (
-            <li key={f.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="text-xl" aria-hidden>{fileIcon(f.fileType)}</span>
+            <li key={f.id} className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-neutral-50/80 transition">
+              <div className="p-2 bg-neutral-100 rounded-xl">
+                {renderFileIcon(f.fileType)}
+              </div>
               <a href={f.fileUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline">
-                <span className="block truncate text-sm font-medium">{f.fileName}</span>
-                <span className="block text-xs text-neutral-500">
+                <span className="block truncate text-sm font-bold text-neutral-900 leading-snug">{f.fileName}</span>
+                <span className="block text-xs font-medium text-neutral-400 mt-0.5">
                   {formatBytes(f.sizeBytes)} · {f.uploader?.name} · {formatDateTime(f.createdAt)}
                 </span>
               </a>
               {(canManage || f.uploader?.id === user?.id) && (
                 <button
                   type="button"
-                  className="rounded p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                  className="rounded-xl p-2 text-neutral-400 hover:bg-red-50 hover:text-red-600 transition"
                   aria-label={`Hapus ${f.fileName}`}
                   onClick={async () => {
                     if (!confirm(`Hapus ${f.fileName}?`)) return;
@@ -112,7 +123,7 @@ export default function FolderDetailPage() {
                     void queryClient.invalidateQueries({ queryKey: ['folder', id] });
                   }}
                 >
-                  🗑️
+                  <IconTrash size={18} />
                 </button>
               )}
             </li>
