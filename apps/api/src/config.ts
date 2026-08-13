@@ -12,7 +12,10 @@ export const config = {
   isProd,
   port: Number(env('PORT', '4000')),
   webOrigin: env('WEB_ORIGIN', 'http://localhost:3000'),
-  publicApiUrl: env('PUBLIC_API_URL', `http://localhost:${process.env.PORT ?? '4000'}`),
+  publicApiUrl: env(
+    'PUBLIC_API_URL',
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://xrk-api.vercel.app',
+  ),
 
   jwt: {
     accessSecret: env('JWT_ACCESS_SECRET', 'dev-access-secret-change-me'),
