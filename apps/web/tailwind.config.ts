@@ -3,6 +3,7 @@ import type { Config } from 'tailwindcss';
 // Mobile-first (master.md §4): bottom nav ≤767px, collapsible sidebar 768–1279px,
 // fixed sidebar ≥1280px — matches Tailwind's md/xl defaults.
 const config: Config = {
+  darkMode: 'class',
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
