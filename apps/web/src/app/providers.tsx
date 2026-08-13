@@ -10,7 +10,13 @@ export function Providers({ children }: { children: ReactNode }) {
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
+          queries: {
+            staleTime: 60_000, // 1 minute instant caching for snappy page switches
+            gcTime: 10 * 60_000, // 10 minutes memory retention
+            retry: 1,
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
+          },
         },
       }),
   );

@@ -17,15 +17,19 @@ import { storageRouter, devStorageRouter } from './modules/storage/routes';
 
 export function createApp(): express.Express {
   const app = express();
-  app.set('trust proxy', 1); // behind nginx/Cloudflare (master.md §1)
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1);
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-  app.use(cors({ origin: config.webOrigin, credentials: true }));
+  app.use(
+    cors({
+      origin: config.webOrigin === '*' ? true : [config.webOrigin, 'https://xrk-web.vercel.app', 'http://localhost:3000'],
+      credentials: true,
+    }),
+  );
 
-  // Dev mock storage handles its own raw bodies — mount before json parser.
   app.use('/api/dev-storage', devStorageRouter);
 
-  // Keep raw body for webhook signature verification.
   app.use(
     express.json({
       limit: '2mb',
