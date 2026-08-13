@@ -61,7 +61,7 @@ async function issueTokens(user: { id: string; role: Role; name: string }) {
 }
 
 const loginSchema = z.object({
-  email: z.string().email().toLowerCase(),
+  email: z.string().email().trim().toLowerCase(),
   password: z.string().min(1),
 });
 

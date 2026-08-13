@@ -68,7 +68,7 @@ usersRouter.patch(
 // ---- Admin: Add / Invite New Member (Direct creation with default password Sunflower123) ----
 
 const inviteSchema = z.object({
-  email: z.string().email().toLowerCase(),
+  email: z.string().email().trim().toLowerCase(),
   name: z.string().min(2).max(100).optional(),
   role: z.nativeEnum(Role).default('MEMBER'),
   division: z.string().max(60).optional(),

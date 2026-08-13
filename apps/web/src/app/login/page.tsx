@@ -30,7 +30,7 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await login(email, password);
+      const res = await login(email.trim(), password);
       if (res.mustChangePassword || res.user.mustChangePassword) {
         setIsSetupPasswordMode(true);
       } else {
