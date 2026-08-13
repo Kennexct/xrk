@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-// Vercel deployment trigger update v2
+// Vercel deployment trigger update v3
 import './globals.css';
 import { Providers } from './providers';
 

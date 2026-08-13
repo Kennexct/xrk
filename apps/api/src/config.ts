@@ -1,4 +1,4 @@
-// Vercel deployment trigger update for storage upload fix
+// Vercel deployment trigger update for database SQL migration sync v3
 const env = (key: string, fallback?: string): string => {
   const value = process.env[key] ?? fallback;
   if (value === undefined) {
